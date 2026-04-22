@@ -33,21 +33,39 @@ public class LicenseGeneratorService {
     public void generateKeyPair() throws Exception {
         KeyPair keyPair = RSAUtil.generateKeyPair();
         
+        // 获取工作目录，确保路径正确
+        String workDir = System.getProperty("user.dir");
+        log.info("当前工作目录: {}", workDir);
+        
         // 保存私钥
         String privateKeyBase64 = RSAUtil.privateKeyToBase64(keyPair.getPrivate());
-        File privateKeyFile = new File(privateKeyPath);
-        privateKeyFile.getParentFile().mkdirs();
+        File privateKeyFile = new File(workDir, privateKeyPath);
+        
+        // 确保父目录存在
+        File privateParentDir = privateKeyFile.getParentFile();
+        if (privateParentDir != null && !privateParentDir.exists()) {
+            boolean created = privateParentDir.mkdirs();
+            log.info("创建私钥目录: {}, 结果: {}", privateParentDir.getAbsolutePath(), created);
+        }
+        
         Files.writeString(privateKeyFile.toPath(), privateKeyBase64);
+        log.info("私钥已保存到: {}", privateKeyFile.getAbsolutePath());
         
         // 保存公钥
         String publicKeyBase64 = RSAUtil.publicKeyToBase64(keyPair.getPublic());
-        File publicKeyFile = new File(publicKeyPath);
-        publicKeyFile.getParentFile().mkdirs();
+        File publicKeyFile = new File(workDir, publicKeyPath);
+        
+        // 确保父目录存在
+        File publicParentDir = publicKeyFile.getParentFile();
+        if (publicParentDir != null && !publicParentDir.exists()) {
+            boolean created = publicParentDir.mkdirs();
+            log.info("创建公钥目录: {}, 结果: {}", publicParentDir.getAbsolutePath(), created);
+        }
+        
         Files.writeString(publicKeyFile.toPath(), publicKeyBase64);
+        log.info("公钥已保存到: {}", publicKeyFile.getAbsolutePath());
         
         log.info("密钥对生成成功");
-        log.info("私钥路径: {}", privateKeyPath);
-        log.info("公钥路径: {}", publicKeyPath);
     }
     
     /**

@@ -107,8 +107,21 @@ public class LicenseService {
         oldRecord.setStatus(0);
         licenseRecordMapper.updateById(oldRecord);
         
-        // 3. 生成新License
-        return generateLicense(newLicense);
+        // 3. 合并新旧License信息，保留未更新的字段
+        License mergedLicense = new License();
+        mergedLicense.setExpireTime(newLicense.getExpireTime() != null ? newLicense.getExpireTime() : oldRecord.getExpireTime());
+        mergedLicense.setMachineId(newLicense.getMachineId() != null ? newLicense.getMachineId() : oldRecord.getMachineId());
+        mergedLicense.setType(newLicense.getType() != null ? newLicense.getType() : oldRecord.getType());
+        mergedLicense.setMaxUsers(newLicense.getMaxUsers() != null ? newLicense.getMaxUsers() : oldRecord.getMaxUsers());
+        mergedLicense.setModules(newLicense.getModules() != null ? newLicense.getModules() : oldRecord.getModules());
+        mergedLicense.setCustomerName(newLicense.getCustomerName() != null ? newLicense.getCustomerName() : oldRecord.getCustomerName());
+        mergedLicense.setRemark(newLicense.getRemark() != null ? newLicense.getRemark() : oldRecord.getRemark());
+        
+        log.info("重新生成License - ID: {}, 客户: {}, 类型: {}, 新过期时间: {}", 
+                id, mergedLicense.getCustomerName(), mergedLicense.getType(), mergedLicense.getExpireTime());
+        
+        // 4. 生成新License
+        return generateLicense(mergedLicense);
     }
     
     /**
