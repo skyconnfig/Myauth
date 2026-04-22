@@ -1,0 +1,13 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: myauth-client
+
+# License配置
+license:
+  # 公钥Base64字符串（从生成器获取）
+  public-key: ""
+  # License文件路径
+  license-file: license/license.key

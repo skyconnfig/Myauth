@@ -1,0 +1,18 @@
+# MyAuth Python 集成依赖
+
+# 核心加密库（必需）
+cryptography>=41.0.0
+
+# Flask 集成（可选，二选一）
+flask>=3.0.0
+
+# FastAPI 集成（可选，二选一）
+fastapi>=0.109.0
+uvicorn>=0.27.0
+pydantic>=2.5.0
+
+# 定时任务（可选）
+APScheduler>=3.10.0
+
+# HTTP 客户端（可选，用于在线激活）
+requests>=2.31.0
