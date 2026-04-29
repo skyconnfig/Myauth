@@ -68,3 +68,18 @@ export const deleteLicense = (id) => {
 export const regenerateLicense = (id, data) => {
   return request.post(`/license/${id}/regenerate`, data)
 }
+
+// ==================== Agent授权文件管理接口 ====================
+
+// 下载license.key文件
+export const downloadLicenseFile = (licenseKey, fileName = 'license.key') => {
+  const blob = new Blob([licenseKey], { type: 'text/plain;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = fileName
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+}

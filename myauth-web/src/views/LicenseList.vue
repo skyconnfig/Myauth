@@ -109,12 +109,23 @@
       :confirmLoading="regenerateLoading"
     >
       <a-form :model="regenerateForm" layout="vertical">
+        <a-form-item label="客户名称">
+          <a-input :value="regenerateForm.customerName" disabled />
+        </a-form-item>
+        <a-form-item label="当前过期时间">
+          <a-input :value="regenerateForm.oldExpireTime" disabled>
+            <template #suffix>
+              <a-tag color="orange" v-if="regenerateForm.oldExpireTime">即将到期</a-tag>
+            </template>
+          </a-input>
+        </a-form-item>
         <a-form-item label="新的过期时间" required>
           <a-date-picker
             v-model:value="regenerateForm.expireTime"
             style="width: 100%"
             format="YYYY-MM-DD"
             value-format="YYYY-MM-DD"
+            :disabled-date="disabledDate"
           />
         </a-form-item>
         <a-form-item label="备注">
@@ -122,14 +133,87 @@
         </a-form-item>
       </a-form>
     </a-modal>
+
+    <!-- 延期结果弹窗 -->
+    <a-modal
+      v-model:open="resultModalVisible"
+      title="延期成功"
+      :footer="null"
+      width="720px"
+    >
+      <a-result
+        status="success"
+        title="授权已成功延期"
+      >
+        <template #subTitle>
+          <a-descriptions :column="2" size="small">
+            <a-descriptions-item label="客户名称">
+              <strong>{{ renewResult.customerName }}</strong>
+            </a-descriptions-item>
+            <a-descriptions-item label="授权类型">
+              <a-tag color="green">{{ renewResult.type }}</a-tag>
+            </a-descriptions-item>
+            <a-descriptions-item label="原过期时间">
+              <span style="color: #999; text-decoration: line-through;">{{ renewResult.oldExpireTime }}</span>
+            </a-descriptions-item>
+            <a-descriptions-item label="新过期时间">
+              <strong style="color: #52c41a; font-size: 16px;">{{ renewResult.newExpireTime }}</strong>
+            </a-descriptions-item>
+          </a-descriptions>
+        </template>
+
+        <template #extra>
+          <a-card title="授权文件 (license.key)" size="small" style="text-align: left; margin-top: 16px;">
+            <a-textarea
+              :value="renewResult.licenseKey"
+              :rows="5"
+              readonly
+              style="font-family: monospace; font-size: 12px;"
+            />
+            <a-space style="margin-top: 12px;">
+              <a-button type="primary" @click="copyLicenseKey">
+                <CopyOutlined /> 复制授权码
+              </a-button>
+              <a-button @click="handleDownloadLicenseKey">
+                <DownloadOutlined /> 下载 license.key 文件
+              </a-button>
+            </a-space>
+          </a-card>
+
+          <a-alert
+            type="info"
+            show-icon
+            style="margin-top: 16px; text-align: left;"
+          >
+            <template #message>
+              <strong>客户端/Agent部署步骤</strong>
+            </template>
+            <template #description>
+              <ol style="margin: 4px 0 0 0; padding-left: 20px; line-height: 2;">
+                <li>将 <code>license.key</code> 文件放置到程序目录的 <code>license/</code> 文件夹下</li>
+                <li>确保 <code>license/public.key</code> 文件存在（公钥不变，无需替换）</li>
+                <li>重启目标程序（或使用 <code>java -javaagent:myauth-agent.jar -jar your-app.jar</code> 启动）</li>
+                <li>启动日志中会显示新的过期时间，确认延期生效</li>
+              </ol>
+            </template>
+          </a-alert>
+
+          <a-space style="margin-top: 16px; width: 100%; justify-content: center;">
+            <a-button type="primary" @click="resultModalVisible = false">
+              完成
+            </a-button>
+          </a-space>
+        </template>
+      </a-result>
+    </a-modal>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { PlusOutlined } from '@ant-design/icons-vue'
-import { pageLicenses, updateLicenseStatus, deleteLicense, regenerateLicense } from '@/api/license'
+import { PlusOutlined, CopyOutlined, DownloadOutlined } from '@ant-design/icons-vue'
+import { pageLicenses, updateLicenseStatus, deleteLicense, regenerateLicense, downloadLicenseFile } from '@/api/license'
 import { message } from 'ant-design-vue'
 import dayjs from 'dayjs'
 
@@ -148,10 +232,22 @@ const currentLicense = ref(null)
 const regenerateModalVisible = ref(false)
 const regenerateLoading = ref(false)
 const regenerateForm = ref({
+  customerName: '',
+  oldExpireTime: '',
   expireTime: null,
   remark: ''
 })
 const currentRegenerateId = ref(null)
+
+// 延期结果
+const resultModalVisible = ref(false)
+const renewResult = ref({
+  customerName: '',
+  type: '',
+  oldExpireTime: '',
+  newExpireTime: '',
+  licenseKey: ''
+})
 
 const columns = [
   { title: 'ID', dataIndex: 'id', key: 'id', width: 80 },
@@ -215,40 +311,75 @@ const handleView = (record) => {
 
 const handleRegenerate = (record) => {
   currentRegenerateId.value = record.id
+  currentLicense.value = record
   regenerateForm.value = {
+    customerName: record.customerName,
+    oldExpireTime: record.expireTime,
     expireTime: dayjs().add(1, 'year').format('YYYY-MM-DD'),
-    remark: ''
+    remark: '授权延期'
   }
   regenerateModalVisible.value = true
 }
 
 const handleRegenerateSubmit = async () => {
   if (!regenerateForm.value.expireTime) {
-    message.warning('请选择过期时间')
+    message.warning('请选择新的过期时间')
     return
   }
   
   regenerateLoading.value = true
   try {
     const res = await regenerateLicense(currentRegenerateId.value, {
-      ...regenerateForm.value,
+      expireTime: regenerateForm.value.expireTime,
+      remark: regenerateForm.value.remark,
       customerName: currentLicense.value?.customerName,
       type: currentLicense.value?.type,
       maxUsers: currentLicense.value?.maxUsers
     })
     
-    message.success('延期成功')
-    regenerateModalVisible.value = false
+    // 保存延期结果用于展示
+    renewResult.value = {
+      customerName: currentLicense.value?.customerName || '',
+      type: currentLicense.value?.type || '',
+      oldExpireTime: currentLicense.value?.expireTime || '',
+      newExpireTime: regenerateForm.value.expireTime,
+      licenseKey: res.data.licenseKey
+    }
     
-    // 显示新的授权码
-    message.info(`新授权码：${res.data.licenseKey.substring(0, 50)}...`)
+    regenerateModalVisible.value = false
+    message.success('授权延期成功')
+    
+    // 打开结果弹窗
+    setTimeout(() => {
+      resultModalVisible.value = true
+    }, 300)
     
     loadData()
   } catch (error) {
-    message.error('延期失败')
+    message.error('延期失败: ' + (error.response?.data?.message || error.message))
   } finally {
     regenerateLoading.value = false
   }
+}
+
+// 复制授权码
+const copyLicenseKey = () => {
+  navigator.clipboard.writeText(renewResult.value.licenseKey).then(() => {
+    message.success('授权码已复制到剪贴板')
+  }).catch(() => {
+    message.error('复制失败，请手动选择复制')
+  })
+}
+
+// 下载 license.key 文件
+const handleDownloadLicenseKey = () => {
+  downloadLicenseFile(renewResult.value.licenseKey)
+  message.success('license.key 文件已下载')
+}
+
+// 禁止选择今天之前的日期
+const disabledDate = (current) => {
+  return current && current < dayjs().startOf('day')
 }
 
 const handleDelete = async (id) => {
