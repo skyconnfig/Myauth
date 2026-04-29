@@ -16,6 +16,7 @@
         <module>myauth-common</module>
         <module>myauth-generator</module>
         <module>myauth-client</module>
+        <module>myauth-agent</module>
     </modules>
 
     <properties>

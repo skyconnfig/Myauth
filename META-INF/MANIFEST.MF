@@ -1,0 +1,7 @@
+Manifest-Version: 1.0
+Premain-Class: com.myauth.agent.LicenseAgent
+Agent-Class: com.myauth.agent.LicenseAgent
+Can-Redefine-Classes: true
+Can-Retransform-Classes: true
+Created-By: 1.8.0_333 (Oracle Corporation)
+

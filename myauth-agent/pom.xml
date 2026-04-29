@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 
+         http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.myauth</groupId>
+        <artifactId>myauth-parent</artifactId>
+        <version>1.0.0</version>
+    </parent>
+
+    <artifactId>myauth-agent</artifactId>
+    <version>1.0.0</version>
+    <packaging>jar</packaging>
+    <name>MyAuth License Agent</name>
+    <description>Java Agent - 为第三方JAR提供License授权过期控制</description>
+
+    <!-- 零外部依赖，只使用JDK标准库 -->
+    <dependencies>
+    </dependencies>
+
+    <properties>
+        <maven.compiler.source>8</maven.compiler.source>
+        <maven.compiler.target>8</maven.compiler.target>
+    </properties>
+
+    <build>
+        <finalName>myauth-agent</finalName>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.3.0</version>
+                <configuration>
+                    <archive>
+                        <manifestEntries>
+                            <Premain-Class>com.myauth.agent.LicenseAgent</Premain-Class>
+                            <Agent-Class>com.myauth.agent.LicenseAgent</Agent-Class>
+                            <Can-Retransform-Classes>true</Can-Retransform-Classes>
+                            <Can-Redefine-Classes>true</Can-Redefine-Classes>
+                        </manifestEntries>
+                    </archive>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>
